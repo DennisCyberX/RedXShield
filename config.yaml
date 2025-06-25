@@ -1,1 +1,13 @@
-
+database:
+  type: sqlite
+  path: ./backend/threat_db/storage.sqlite3
+api:
+  host: 0.0.0.0
+  port: 8000
+threat_feeds:
+  africert: true
+  virustotal: true
+ai:
+  whois_model_path: ./models/whois_bert
+  rf_model_path: ./models/random_forest.pkl
+  gnn_model_path: ./models/gnn_model.pt
