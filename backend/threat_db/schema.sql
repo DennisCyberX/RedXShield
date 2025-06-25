@@ -1,1 +1,7 @@
-
+CREATE TABLE IF NOT EXISTS threats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain TEXT UNIQUE NOT NULL,
+    risk_score REAL,
+    tags TEXT,
+    shap_values TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
