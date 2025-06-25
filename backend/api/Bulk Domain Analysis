@@ -1,1 +1,54 @@
+from fastapi import APIRouter, HTTPException
+from typing import List
+from datetime import datetime
+from ..threat_db.db_interface import ThreatDatabase
+from ..integrations.virustotal import VirusTotal
+import os
 
+router = APIRouter()
+db = ThreatDatabase()
+vt = VirusTotal(api_key=os.getenv('VIRUSTOTAL_API_KEY'))
+
+@router.post("/analyze/bulk")
+async def bulk_analyze(domains: List[str]):
+    results = []
+    
+    for domain in domains:
+        try:
+            # Check database first
+            cached = db.get_domain_analysis(domain)
+            if cached and (datetime.now() - cached['timestamp']).days < 1:
+                results.append(cached)
+                continue
+                
+            # Fresh analysis
+            vt_result = vt.check_domain(domain)
+            analysis = {
+                'domain': domain,
+                'risk_score': calculate_risk(vt_result),
+                'indicators': extract_indicators(vt_result),
+                'timestamp': datetime.now()
+            }
+            
+            db.save_analysis(analysis)
+            results.append(analysis)
+            
+        except Exception as e:
+            results.append({
+                'domain': domain,
+                'error': str(e)
+            })
+    
+    return {'results': results}
+
+def calculate_risk(vt_data):
+    # Implement risk scoring logic
+    reputation = vt_data.get('data', {}).get('attributes', {}).get('reputation', 0)
+    return max(0, min(100, reputation * 10))
+
+def extract_indicators(vt_data):
+    attrs = vt_data.get('data', {}).get('attributes', {})
+    return {
+        'malicious': attrs.get('last_analysis_stats', {}).get('malicious', 0),
+        'suspicious': attrs.get('last_analysis_stats', {}).get('suspicious', 0)
+    }
