@@ -1,1 +1,9 @@
-
+torch
+transformers
+scikit-learn
+networkx
+joblib
+flask
+requests
+python-dotenv
+sqlite3
