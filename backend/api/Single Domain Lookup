@@ -1,1 +1,34 @@
+from fastapi import APIRouter, Query
+from ..threat_db.db_interface import ThreatDatabase
+from ..integrations.virustotal import VirusTotal
+from ..ai_modules.whois_analyzer import WhoisAnalyzer
+import os
+import whois
 
+router = APIRouter()
+db = ThreatDatabase()
+vt = VirusTotal(api_key=os.getenv('VIRUSTOTAL_API_KEY'))
+whois_analyzer = WhoisAnalyzer()
+
+@router.get("/analyze/single")
+async def analyze_domain(
+    domain: str = Query(..., example="example.com"),
+    fresh: bool = False
+):
+    try:
+        # Check cache unless fresh analysis requested
+        if not fresh:
+            cached = db.get_domain_analysis(domain)
+            if cached:
+                return {'status': 'success', 'source': 'cache', 'data': cached}
+        
+        # Get fresh data
+        vt_data = vt.check_domain(domain)
+        whois_data = str(whois.whois(domain))
+        whois_score = whois_analyzer.analyze(whois_data)
+        
+        result = {
+            'domain': domain,
+            'virustotal': vt_data,
+            'whois_analysis': whois_score,
+            'risk_score': calculate_composite_score(vt_data, whois
